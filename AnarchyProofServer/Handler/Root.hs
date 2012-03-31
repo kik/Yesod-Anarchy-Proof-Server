@@ -23,10 +23,10 @@ getProblemListR = do
         setTitle "AnarchyProofServer homepage"
         $(widgetFile "homepage")
   
-getProblemViewR :: Int -> Handler RepHtml
+getProblemViewR :: ProblemId -> Handler RepHtml
 getProblemViewR problem_id = do
-    defaultLayout $ do
-        h2id <- lift newIdent
-        setTitle "AnarchyProofServer homepage"
-        $(widgetFile "homepage")
+  problem <- runDB $ get404 problem_id
+  defaultLayout $ do
+    setTitle "AnarchyProofServer homepage"
+    $(widgetFile "problem-view")
   

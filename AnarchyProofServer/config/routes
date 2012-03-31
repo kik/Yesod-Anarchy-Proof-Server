@@ -5,6 +5,6 @@
 /robots.txt RobotsR GET
 
 /problem ProblemListR GET
-/problem/view/#Int ProblemViewR GET
+/problem/view/#ProblemId ProblemViewR GET
 
 / RootR GET
