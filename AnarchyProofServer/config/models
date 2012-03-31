@@ -8,4 +8,25 @@ Email
     verkey Text Maybe
     UniqueEmail email
 
+Language
+    name Text
+
+Problem
+    title Text
+    options Text
+    description Text
+    definitions Text
+    theorem Text
+    verifier Text
+    assumption Text
+    createdAt UTCTime
+
+Answer
+    problemId ProblemId Eq
+    languageId LanguageId Eq
+    user Text
+    file ByteString
+    size Int
+    createdAt UTCTime
+
  -- By default this file is used in Model.hs (which is imported by Foundation.hs)

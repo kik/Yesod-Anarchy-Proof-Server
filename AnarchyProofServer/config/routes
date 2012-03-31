@@ -4,4 +4,7 @@
 /favicon.ico FaviconR GET
 /robots.txt RobotsR GET
 
+/problem ProblemListR GET
+/problem/view/#Int ProblemViewR GET
+
 / RootR GET

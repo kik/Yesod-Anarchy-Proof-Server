@@ -3,6 +3,8 @@ module Model where
 import Prelude
 import Yesod
 import Data.Text (Text)
+import Data.ByteString (ByteString)
+import Data.Time.Clock (UTCTime)
 import Database.Persist.Quasi
 
 

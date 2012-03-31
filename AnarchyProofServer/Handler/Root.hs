@@ -15,3 +15,18 @@ getRootR = do
         h2id <- lift newIdent
         setTitle "AnarchyProofServer homepage"
         $(widgetFile "homepage")
+
+getProblemListR :: Handler RepHtml
+getProblemListR = do
+    defaultLayout $ do
+        h2id <- lift newIdent
+        setTitle "AnarchyProofServer homepage"
+        $(widgetFile "homepage")
+  
+getProblemViewR :: Int -> Handler RepHtml
+getProblemViewR problem_id = do
+    defaultLayout $ do
+        h2id <- lift newIdent
+        setTitle "AnarchyProofServer homepage"
+        $(widgetFile "homepage")
+  
