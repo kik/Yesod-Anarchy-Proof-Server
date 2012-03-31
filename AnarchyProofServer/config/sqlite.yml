@@ -1,0 +1,20 @@
+Default: &defaults
+  database: AnarchyProofServer.sqlite3
+  poolsize: 10
+
+Development:
+  <<: *defaults
+
+Test:
+  database: AnarchyProofServer_test.sqlite3
+  <<: *defaults
+
+Staging:
+  database: AnarchyProofServer_staging.sqlite3
+  poolsize: 100
+  <<: *defaults
+
+Production:
+  database: AnarchyProofServer_production.sqlite3
+  poolsize: 100
+  <<: *defaults
