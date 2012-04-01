@@ -2,4 +2,34 @@
 <p
   TODO: form
 <h2>Description
-<p>#{problemDescription problem}
+<p
+  $forall line <- descLines
+    #{line}
+    <br>
+
+$if hasDefs
+  <h2>Definitions
+  <pre
+    $forall line <- defsLines
+      #{line}
+      <br>
+
+<h2>Theorem
+<pre
+  $forall line <- thmLines
+    #{line}
+    <br>
+
+<h2>Verifier
+<pre
+  $forall line <- verfLines
+    #{line}
+    <br>
+
+$if hasAssm
+  <h2>Assumption
+  <pre>
+    $forall line <- assmLines
+      #{line}
+      <br>
+
