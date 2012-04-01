@@ -25,8 +25,10 @@ getProblemListR = do
         $(widgetFile "homepage")
 
 getProblemViewR :: ProblemId -> Handler RepHtml
-getProblemViewR problem_id = do
-  problem <- runDB $ get404 problem_id
+getProblemViewR problemId = do
+  problem <- runDB $ get404 problemId
+  answers <- runDB $ selectList [AnswerProblemId ==. problemId] [Asc AnswerSize, Asc AnswerCreatedAt]
+  langs   <- runDB $ selectList [] [Asc LanguageId]
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
     let descLines = T.lines $ problemDescription problem
@@ -37,4 +39,8 @@ getProblemViewR problem_id = do
     let assmLines = T.lines $ problemAssumption problem
     let hasAssm = assmLines /= []
     $(widgetFile "problem-view")
-  
+  where
+    grouping ls as =
+      [(l, groupByLang lk as) | Entity lk l <- ls]
+    groupByLang lk as =
+      [a | Entity _ a <- as, answerLanguageId a == lk]
