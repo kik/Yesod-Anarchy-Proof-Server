@@ -33,13 +33,6 @@ textWidget t =
                  #{l}
                  <br>|]
 
-textWidget' :: Text -> Maybe (GWidget sub master ())
-textWidget' t = 
-  if t == "" then
-    Nothing
-  else
-    Just $ textWidget t
-
 getProblemViewR :: ProblemId -> Handler RepHtml
 getProblemViewR problemId = do
   problem <- runDB $ get404 problemId
@@ -48,10 +41,10 @@ getProblemViewR problemId = do
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
     let desc = textWidget $ problemDescription problem
-    let defs = textWidget' $ problemDefinitions problem
+    let defs = textWidget <$> problemDefinitions problem
     let thm  = textWidget $ problemTheorem problem
     let verf = textWidget $ problemVerifier problem
-    let assm = textWidget' $ problemAssumption problem
+    let assm = textWidget <$> problemAssumption problem
     $(widgetFile "problem-view")
   where
     grouping ls as =

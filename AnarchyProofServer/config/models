@@ -15,10 +15,10 @@ Problem
     title Text
     options Text
     description Text
-    definitions Text
+    definitions Text Maybe
     theorem Text
     verifier Text
-    assumption Text
+    assumption Text Maybe
     createdAt UTCTime
 
 Answer
