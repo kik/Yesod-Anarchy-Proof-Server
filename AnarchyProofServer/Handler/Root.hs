@@ -2,6 +2,7 @@ module Handler.Root where
 
 import Import
 import Data.Text as T
+import Control.Monad
 
 -- This is a handler function for the GET request method on the RootR
 -- resource pattern. All of your resource patterns are defined in
@@ -24,6 +25,20 @@ getProblemListR = do
         setTitle "AnarchyProofServer homepage"
         $(widgetFile "homepage")
 
+textWidget :: Text -> GWidget sub master ()
+textWidget t = 
+  forM_ (T.lines t) $ \l -> do
+    toWidget [hamlet|
+              #{l}
+              <br>|]
+
+textWidget' :: Text -> Maybe (GWidget sub master ())
+textWidget' t = 
+  if t == "" then
+    Nothing
+  else
+    Just $ textWidget t
+
 getProblemViewR :: ProblemId -> Handler RepHtml
 getProblemViewR problemId = do
   problem <- runDB $ get404 problemId
@@ -31,13 +46,11 @@ getProblemViewR problemId = do
   langs   <- runDB $ selectList [] [Asc LanguageId]
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
-    let descLines = T.lines $ problemDescription problem
-    let defsLines = T.lines $ problemDefinitions problem
-    let hasDefs = defsLines /= []
-    let thmLines  = T.lines $ problemTheorem problem
-    let verfLines = T.lines $ problemVerifier problem
-    let assmLines = T.lines $ problemAssumption problem
-    let hasAssm = assmLines /= []
+    let desc = textWidget $ problemDescription problem
+    let defs = textWidget' $ problemDefinitions problem
+    let thm  = textWidget $ problemTheorem problem
+    let verf = textWidget $ problemVerifier problem
+    let assm = textWidget' $ problemAssumption problem
     $(widgetFile "problem-view")
   where
     grouping ls as =

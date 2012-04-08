@@ -1,40 +1,31 @@
 <h2>Submit
 <p
   TODO: form
-<h2>Description
-<p
-  $forall line <- descLines
-    #{line}
-    <br>
 
-$if hasDefs
+<h2>Description
+<p>^{desc}
+
+$maybe w <- defs
   <h2>Definitions
-  <pre
-    $forall line <- defsLines
-      #{line}
-      <br>
+  <pre>^{w}
 
 <h2>Theorem
-<pre
-  $forall line <- thmLines
-    #{line}
-    <br>
+<pre>^{thm}
 
 <h2>Verifier
-<pre
-  $forall line <- verfLines
-    #{line}
-    <br>
+<pre>^{verf}
 
-$if hasAssm
+$maybe w <- assm
   <h2>Assumption
-  <pre>
-    $forall line <- assmLines
-      #{line}
-      <br>
+  <pre>^{w}
 
 <h2>Ranking
 $forall langAns <- grouping langs answers
   <p>#{languageName $ fst langAns}
-  $forall ans <- snd langAns
-    <p>#{answerUser ans}
+  <table>
+    $forall ans <- snd langAns
+      <tr>
+        <td>#{answerUser ans}
+        <td>#{answerSize ans}
+        <td>#{show $ answerCreatedAt ans}
+
