@@ -2,7 +2,7 @@ module Handler.Root where
 
 import Import
 import Data.Text as T
-import Control.Monad
+import Data.Foldable
 
 -- This is a handler function for the GET request method on the RootR
 -- resource pattern. All of your resource patterns are defined in
@@ -27,10 +27,11 @@ getProblemListR = do
 
 textWidget :: Text -> GWidget sub master ()
 textWidget t = 
-  forM_ (T.lines t) $ \l -> do
-    toWidget [hamlet|
-              #{l}
-              <br>|]
+  foldMap addBr $ T.lines t
+    where
+      addBr l = [whamlet|
+                 #{l}
+                 <br>|]
 
 textWidget' :: Text -> Maybe (GWidget sub master ())
 textWidget' t = 
