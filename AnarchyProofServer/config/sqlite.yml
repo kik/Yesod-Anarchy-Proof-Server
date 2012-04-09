@@ -5,7 +5,7 @@ Default: &defaults
 Development:
   <<: *defaults
 
-Test:
+Testing:
   database: AnarchyProofServer_test.sqlite3
   <<: *defaults
 

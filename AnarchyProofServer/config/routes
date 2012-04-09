@@ -7,4 +7,4 @@
 /problem ProblemListR GET
 /problem/view/#ProblemId ProblemViewR GET
 
-/ RootR GET
+/ HomeR GET POST
