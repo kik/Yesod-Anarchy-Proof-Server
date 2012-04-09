@@ -33,6 +33,7 @@ library
                      Settings
                      Settings.StaticFiles
                      Handler.Home
+                     Handler.Root
 
     ghc-options:   -Wall -threaded -O0
     cpp-options:   -DDEVELOPMENT
