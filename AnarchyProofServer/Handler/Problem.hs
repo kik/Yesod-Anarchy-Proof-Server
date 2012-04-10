@@ -1,7 +1,7 @@
 module Handler.Problem where
 
 import Import
-import Data.Text as T
+import qualified Data.Text as T
 import Data.Foldable
 
 getProblemListR :: Handler RepHtml
@@ -19,11 +19,29 @@ textWidget t =
                  #{l}
                  <br>|]
 
+data Ans = Ans
+           { ansUser :: Text
+           , ansLang :: LanguageId
+           , ansFile :: FileInfo
+           }
+           
+ansForm :: [Entity Language] -> Form Ans
+ansForm ls = renderDivs $ Ans
+             <$> areq textField "User" Nothing
+             <*> areq langField "Lang" Nothing
+             <*> fileAFormReq "File"
+               where
+                 langField = selectFieldList 
+                             $ map nameValue ls
+                 nameValue (Entity k v) =
+                   (languageName v, k)
+
 getProblemViewR :: ProblemId -> Handler RepHtml
 getProblemViewR problemId = do
   problem <- runDB $ get404 problemId
   answers <- runDB $ selectList [AnswerProblemId ==. problemId] [Asc AnswerSize, Asc AnswerCreatedAt]
   langs   <- runDB $ selectList [] [Asc LanguageId]
+  (ansWidget, ansEnctype) <- generateFormPost $ ansForm langs
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
     let desc = textWidget $ problemDescription problem

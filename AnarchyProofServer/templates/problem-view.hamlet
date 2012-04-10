@@ -1,6 +1,8 @@
 <h2>Submit
 <p>
-  TODO: form
+  <form method=post action=@{HomeR}#form enctype=#{ansEnctype}>
+    ^{ansWidget}
+    <input type="submit" value="Send it!">
 
 <h2>Description
 <p>^{desc}
