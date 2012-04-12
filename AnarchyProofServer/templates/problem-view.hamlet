@@ -1,6 +1,6 @@
 <h2>Submit
 <p>
-  <form method=post action=@{HomeR}#form enctype=#{ansEnctype}>
+  <form method=post action=@{ProblemSolveR problemId}#form enctype=#{ansEnctype}>
     ^{ansWidget}
     <input type="submit" value="Send it!">
 

@@ -6,5 +6,6 @@
 
 /problem ProblemListR GET
 /problem/view/#ProblemId ProblemViewR GET
+/problem/prove/#ProblemId ProblemSolveR POST
 
 / HomeR GET POST

@@ -10,6 +10,7 @@ Email
 
 Language
     name Text
+    deriving Show Eq
 
 Problem
     title Text
