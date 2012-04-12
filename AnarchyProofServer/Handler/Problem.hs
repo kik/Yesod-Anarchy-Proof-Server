@@ -3,6 +3,8 @@ module Handler.Problem where
 import Import
 import qualified Data.Text as T
 import Data.Foldable
+import System.IO.Temp (withSystemTempDirectory)
+import Control.Monad.Trans.Control (control)
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
@@ -63,12 +65,22 @@ postProblemSolveR problemId = do
         FormSuccess r -> return r
         _ -> redirect $ ProblemViewR problemId
   $(logDebug) $ ansUser answer
-  liftIO $ checkAns problem answer
+  checkAns problem answer  
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
     [whamlet|TODO|]
 
-checkAns :: Problem -> Ans -> IO ()
-checkAns problem answer = do
-  return ()
+checkAns :: Problem -> Ans -> Handler ()
+checkAns problem answer =
+  withTempDir "aps-" $ \tmpdir -> do
+    $(logDebug) $ T.pack tmpdir
+    return ()
   
+withTempDir :: FilePath 
+               -> (FilePath -> GHandler sub master a) 
+               -> GHandler sub master a
+withTempDir prefix a =
+  control $ \runInIO ->
+  withSystemTempDirectory prefix $ \tmpdir ->
+  runInIO $ a tmpdir
+
