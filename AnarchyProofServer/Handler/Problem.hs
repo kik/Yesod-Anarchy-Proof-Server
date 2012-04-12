@@ -1,10 +1,14 @@
 module Handler.Problem where
 
 import Import
+import qualified Data.ByteString.Lazy as B
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Data.Foldable
 import System.IO.Temp (withSystemTempDirectory)
 import Control.Monad.Trans.Control (control)
+import System.FilePath ((</>))
+import System.IO
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
@@ -64,17 +68,28 @@ postProblemSolveR problemId = do
   answer <- case result of
         FormSuccess r -> return r
         _ -> redirect $ ProblemViewR problemId
-  $(logDebug) $ ansUser answer
-  checkAns problem answer  
+  withTempDir "aps-" $ checkAns problem answer  
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
     [whamlet|TODO|]
 
-checkAns :: Problem -> Ans -> Handler ()
-checkAns problem answer =
-  withTempDir "aps-" $ \tmpdir -> do
-    $(logDebug) $ T.pack tmpdir
-    return ()
+checkAns :: Problem -> Ans -> FilePath -> Handler ()
+checkAns problem answer tmpdir = do
+  for_ (problemDefinitions problem) 
+    $ saveT "Definitions.v"
+  saveBS "Input.v" $ fileContent $ ansFile answer
+  saveT "Verify.v" $ problemVerifier problem
+  return ()
+  where
+    path name = tmpdir </> name
+    savef name f = liftIO $ do
+      withFile (path name) WriteMode $ \h -> do
+        f h
+    saveT name text = 
+      savef name 
+      $ \h -> hSetEncoding h utf8 >> TIO.hPutStr h text
+    saveBS name bs =
+      savef name $ flip B.hPut bs
   
 withTempDir :: FilePath 
                -> (FilePath -> GHandler sub master a) 
