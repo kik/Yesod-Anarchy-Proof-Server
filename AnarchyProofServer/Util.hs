@@ -5,6 +5,8 @@ import Control.Monad.Trans.Control (control)
 import System.IO.Temp (withSystemTempDirectory)
 import Data.Text.Lazy.Encoding (decodeUtf8')
 import Data.Text.Lazy (toStrict)
+import qualified Data.Text.IO as TIO
+import System.IO
 
 withTempDir :: FilePath 
                -> (FilePath -> GHandler sub master a) 
@@ -13,6 +15,12 @@ withTempDir prefix a =
   control $ \runInIO ->
   withSystemTempDirectory prefix $ \tmpdir ->
   runInIO $ a tmpdir
+
+writeFileUtf8 :: FilePath -> Text -> IO ()
+writeFileUtf8 path text = do
+  withFile path WriteMode $ \h -> do
+    hSetEncoding h utf8
+    TIO.hPutStr h text
 
 textFileAFormReq ::
   RenderMessage master FormMessage => 

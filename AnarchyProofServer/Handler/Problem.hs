@@ -2,12 +2,9 @@ module Handler.Problem where
 
 import Import
 import Util
-import qualified Data.ByteString.Lazy as B
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import Data.Foldable
 import System.FilePath ((</>))
-import System.IO
 import Data.Time.Clock (getCurrentTime)
 
 getProblemListR :: Handler RepHtml
@@ -75,19 +72,22 @@ postProblemSolveR problemId = do
 
 checkAns :: Problem -> Ans -> FilePath -> Handler ()
 checkAns problem answer tmpdir = do
-  for_ (problemDefinitions problem) 
-    $ saveT "Definitions.v"
-  saveT "Input.v" $ ansFile answer
-  saveT "Verify.v" $ problemVerifier problem
+  for_ definitions $ saveAndCompile "Definitions.v" []
+  saveAndCompile "Input.v" [] $ ansFile answer
+  saveAndCompile "Verify.v" [requireInput, requireDefinitions] $ problemVerifier problem
   return ()
   where
     path name = tmpdir </> name
-    savef name f = liftIO $ do
-      withFile (path name) WriteMode $ \h -> do
-        f h
-    saveT name text = 
-      savef name 
-      $ \h -> hSetEncoding h utf8 >> TIO.hPutStr h text
-    saveBS name bs =
-      savef name $ flip B.hPut bs
-  
+    definitions = problemDefinitions problem
+    requireInput = "-require Input"
+    requireDefinitions = 
+      maybe "" (const "-require Definitions") definitions
+    
+    saveAndCompile name opts contents = do
+      save name contents
+      compile name opts
+    save name contents =
+      liftIO $ writeFileUtf8 (path name) contents -- TODO: catch
+    compile name optlist =
+      let opts = T.unwords optlist in
+      return () -- TODO
