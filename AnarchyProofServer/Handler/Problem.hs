@@ -1,12 +1,11 @@
 module Handler.Problem where
 
 import Import
+import Util
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Foldable
-import System.IO.Temp (withSystemTempDirectory)
-import Control.Monad.Trans.Control (control)
 import System.FilePath ((</>))
 import System.IO
 
@@ -91,11 +90,3 @@ checkAns problem answer tmpdir = do
     saveBS name bs =
       savef name $ flip B.hPut bs
   
-withTempDir :: FilePath 
-               -> (FilePath -> GHandler sub master a) 
-               -> GHandler sub master a
-withTempDir prefix a =
-  control $ \runInIO ->
-  withSystemTempDirectory prefix $ \tmpdir ->
-  runInIO $ a tmpdir
-
