@@ -31,6 +31,6 @@ tar zxvf $SSR.tar.gz
 
 cd $SSR
 
-PATH=$PATH:$PREFIX/bin
+PATH=$PREFIX/bin:$PATH
 make
 make install
