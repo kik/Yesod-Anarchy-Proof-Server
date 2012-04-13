@@ -26,7 +26,7 @@ Answer
     problemId ProblemId Eq
     languageId LanguageId Eq
     user Text
-    file ByteString
+    file Text
     size Int
     createdAt UTCTime
 

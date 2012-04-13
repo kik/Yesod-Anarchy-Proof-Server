@@ -4,7 +4,6 @@ import Prelude
 import Yesod
 import Data.Text (Text)
 import Database.Persist.Quasi
-import Data.ByteString (ByteString)
 import Data.Time.Clock (UTCTime)
 
 -- You can define all of your database entities in the entities file.
