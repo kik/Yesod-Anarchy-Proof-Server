@@ -3,6 +3,8 @@ module Util where
 import Import
 import Control.Monad.Trans.Control (control)
 import System.IO.Temp (withSystemTempDirectory)
+import Data.Text.Lazy.Encoding (decodeUtf8')
+import Data.Text.Lazy (toStrict)
 
 withTempDir :: FilePath 
                -> (FilePath -> GHandler sub master a) 
@@ -12,5 +14,19 @@ withTempDir prefix a =
   withSystemTempDirectory prefix $ \tmpdir ->
   runInIO $ a tmpdir
 
-
+textFileAFormReq ::
+  RenderMessage master FormMessage => 
+  FieldSettings master -> AForm sub master Text
+textFileAFormReq fs = formToAForm $ do
+  (fileInfoRes, fileView) <- aFormToForm $ fileAFormReq fs
+  let fileRes = checkFail $ utf8dec <$> fileInfoRes
+  return (toStrict <$> fileRes, fileView [])
+  where
+    utf8dec = decodeUtf8' . fileContent
+    checkFail t =
+      case t of
+        FormSuccess (Right x) -> FormSuccess x
+        FormSuccess _ -> FormFailure ["failed to decode utf-8"]
+        FormMissing   -> FormMissing
+        FormFailure x -> FormFailure x
 

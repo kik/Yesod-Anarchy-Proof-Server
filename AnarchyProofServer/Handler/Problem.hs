@@ -5,13 +5,10 @@ import Util
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-import Data.Text.Lazy.Encoding (decodeUtf8')
-import Data.Text.Lazy (toStrict)
 import Data.Foldable
 import System.FilePath ((</>))
 import System.IO
 import Data.Time.Clock (getCurrentTime)
-import Control.Arrow ((&&&))
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
@@ -31,7 +28,7 @@ textWidget t =
 data Ans = Ans
            { ansUser :: Text
            , ansLang :: Entity Language
-           , ansFile :: FileInfo
+           , ansFile :: Text
            }
            
 ansForm :: Form Ans
@@ -39,44 +36,10 @@ ansForm =
   renderDivs $ Ans
   <$> areq textField "User" Nothing
   <*> areq langField "Lang" Nothing
-  <*> fileAFormReq "File"
+  <*> textFileAFormReq "File"
     where
       langOpts = optionsPersist [] [Asc LanguageId] languageName
       langField = selectField langOpts
-
-answerForm :: ProblemId -> Form Answer
-answerForm problemId extra = do
-  (userRes, userView) <- mreq textField "User" Nothing
-  (langRes, langView) <- mreq langField "Lang" Nothing
-  (fileRes, fileView) <- textFileMFormReq "File"
-  current <- currentTime
-  let answerRes = Answer problemId
-                  <$> (entityKey <$> langRes)
-                  <*> userRes
-                  <*> fileRes
-                  <*> (T.length <$> fileRes)
-                  <*> pure current
-  let widget = [whamlet|TODO|]
-  return (answerRes, widget)
-  where
-    langOpts = optionsPersist [] [Asc LanguageId] languageName
-    langField = selectField langOpts
-    currentTime = liftIO $ getCurrentTime
-
-textFileMFormReq :: 
-  RenderMessage master FormMessage => 
-  FieldSettings master -> MForm sub master (FormResult Text, GWidget sub master ())
-textFileMFormReq fs = do
-  (fileInfoRes, fileView) <- aFormToForm $ fileAFormReq fs
-  let fileRes = check $ utf8dec <$> fileInfoRes
-  let widget = [whamlet|TODO|]
-  return (toStrict <$> fileRes, widget)
-  where
-    utf8dec = decodeUtf8' . fileContent
-    check (FormSuccess (Right t)) = pure t
-    check (FormSuccess _) = FormFailure ["failed to decode utf-8"]
-    check FormMissing = FormMissing
-    check (FormFailure x) = FormFailure x
 
 getProblemViewR :: ProblemId -> Handler RepHtml
 getProblemViewR problemId = do
@@ -114,7 +77,7 @@ checkAns :: Problem -> Ans -> FilePath -> Handler ()
 checkAns problem answer tmpdir = do
   for_ (problemDefinitions problem) 
     $ saveT "Definitions.v"
-  saveBS "Input.v" $ fileContent $ ansFile answer
+  saveT "Input.v" $ ansFile answer
   saveT "Verify.v" $ problemVerifier problem
   return ()
   where
