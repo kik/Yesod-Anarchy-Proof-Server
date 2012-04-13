@@ -107,6 +107,7 @@ executable         AnarchyProofServer
                  , time
                  , temporary
                  , filepath
+                 , process
 
                  , yesod-test
 test-suite integration-tests

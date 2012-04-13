@@ -6,6 +6,7 @@ import qualified Data.Text as T
 import Data.Foldable
 import System.FilePath ((</>))
 import Data.Time.Clock (getCurrentTime)
+import System.Process (system)
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
@@ -82,12 +83,16 @@ checkAns problem answer tmpdir = do
     requireInput = "-require Input"
     requireDefinitions = 
       maybe "" (const "-require Definitions") definitions
+    compiler = "coqc" -- TODO: ansLang answer
     
     saveAndCompile name opts contents = do
       save name contents
       compile name opts
     save name contents =
       liftIO $ writeFileUtf8 (path name) contents -- TODO: catch
-    compile name optlist =
-      let opts = T.unwords optlist in
+    compile name optlist = do
+      let command = unwords $ ["cd", tmpdir, ";", compiler, name] ++ optlist ++ [">t.out", "2>t.err"]
+      $(logDebug) $ T.pack command
+      ex <- liftIO $ system command -- TODO: catch
+      $(logDebug) $ T.pack $ "system: " ++ show ex
       return () -- TODO
