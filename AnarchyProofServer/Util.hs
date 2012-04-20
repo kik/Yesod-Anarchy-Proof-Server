@@ -5,8 +5,13 @@ import Control.Monad.Trans.Control (control)
 import System.IO.Temp (withSystemTempDirectory)
 import Data.Text.Lazy.Encoding (decodeUtf8')
 import Data.Text.Lazy (toStrict)
+import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import System.IO
+import Data.Conduit
+import qualified Data.Conduit.Binary as CB
+import qualified Data.Conduit.List as CL
+import qualified Data.Conduit.Text as CT
 
 withTempDir :: FilePath 
                -> (FilePath -> GHandler sub master a) 
@@ -15,6 +20,12 @@ withTempDir prefix a =
   control $ \runInIO ->
   withSystemTempDirectory prefix $ \tmpdir ->
   runInIO $ a tmpdir
+
+readFileUtf8 :: FilePath -> IO Text
+readFileUtf8 path = do
+  texts <- runResourceT 
+           $ CB.sourceFile path $= CT.decode CT.utf8 $$ CL.consume
+  return $ T.concat texts
 
 writeFileUtf8 :: FilePath -> Text -> IO ()
 writeFileUtf8 path text = do

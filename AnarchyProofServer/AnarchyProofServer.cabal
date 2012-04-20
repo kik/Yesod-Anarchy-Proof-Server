@@ -108,6 +108,7 @@ executable         AnarchyProofServer
                  , temporary
                  , filepath
                  , process
+                 , conduit
 
                  , yesod-test
 test-suite integration-tests

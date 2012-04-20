@@ -7,6 +7,7 @@ import Data.Foldable
 import System.FilePath ((</>))
 import Data.Time.Clock (getCurrentTime)
 import System.Process (system)
+import System.Exit
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
@@ -95,4 +96,12 @@ checkAns problem answer tmpdir = do
       $(logDebug) $ T.pack command
       ex <- liftIO $ system command -- TODO: catch
       $(logDebug) $ T.pack $ "system: " ++ show ex
+      handleCompileFailure ex name
       return () -- TODO
+    handleCompileFailure ExitSuccess _ = return ()
+    handleCompileFailure (ExitFailure st) name = sendResponse =<< do
+      out <- liftIO $ readFileUtf8 (path "t.out")
+      err <- liftIO $ readFileUtf8 (path "t.err") -- TODO: catch
+      defaultLayout $ do
+          setTitle "Compile failure"
+          [whamlet|TODO|]
