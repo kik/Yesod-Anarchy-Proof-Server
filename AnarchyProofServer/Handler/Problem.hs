@@ -8,6 +8,10 @@ import System.FilePath ((</>))
 import Data.Time.Clock (getCurrentTime)
 import System.Process (system)
 import System.Exit
+import Data.Conduit
+import qualified Data.Conduit.Binary as CB
+import qualified Data.Conduit.List as CL
+import qualified Data.Conduit.Text as CT
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
@@ -15,14 +19,6 @@ getProblemListR = do
         h2id <- lift newIdent
         setTitle "AnarchyProofServer homepage"
         [whamlet|TODO|]
-
-textWidget :: Text -> GWidget sub master ()
-textWidget t = 
-  foldMap addBr $ T.lines t
-    where
-      addBr l = [whamlet|
-                 #{l}
-                 <br>|]
 
 data Ans = Ans
            { ansUser :: Text
@@ -67,41 +63,38 @@ postProblemSolveR problemId = do
   answer <- case result of
         FormSuccess r -> return r
         _ -> redirect $ ProblemViewR problemId
-  withTempDir "aps-" $ checkAns problem answer  
+  (ok, compileLog) <- withTempDir "aps-" $ checkAns problem answer  
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
-    [whamlet|TODO|]
+    $(widgetFile "post-answer")
 
-checkAns :: Problem -> Ans -> FilePath -> Handler ()
+checkAns :: Problem -> Ans -> FilePath -> Handler (Bool, Widget)
 checkAns problem answer tmpdir = do
-  for_ definitions $ saveAndCompile "Definitions.v" []
-  saveAndCompile "Input.v" [] $ ansFile answer
-  saveAndCompile "Verify.v" [requireInput, requireDefinitions] $ problemVerifier problem
-  return ()
+  go rcs mempty
   where
-    path name = tmpdir </> name
-    definitions = problemDefinitions problem
+    go [] y = return (True, y)
+    go (x:xs) y = do
+      (ok, y') <- runCompiler x
+      if ok then
+        go xs (y <> y')
+        else
+        return (False, y <> y')
+        
+    rcs = toList rcDefinitions ++ [rcInput, rcVerify]
+    
+    rcDefinitions = rc "Definition" [] <$> problemDefinitions problem
+    rcInput =       rc "Input.v" [] $ ansFile answer
+    rcVerify =      rc "Verify.v" verifyOpt $ problemVerifier problem
     requireInput = "-require Input"
     requireDefinitions = 
-      maybe "" (const "-require Definitions") definitions
+      maybe [] (const ["-require Definitions"]) rcDefinitions
+    verifyOpt = requireInput : requireDefinitions
+
     compiler = "coqc" -- TODO: ansLang answer
-    
-    saveAndCompile name opts contents = do
-      save name contents
-      compile name opts
-    save name contents =
-      liftIO $ writeFileUtf8 (path name) contents -- TODO: catch
-    compile name optlist = do
-      let command = unwords $ ["cd", tmpdir, ";", compiler, name] ++ optlist ++ [">t.out", "2>t.err"]
-      $(logDebug) $ T.pack command
-      ex <- liftIO $ system command -- TODO: catch
-      $(logDebug) $ T.pack $ "system: " ++ show ex
-      handleCompileFailure ex name
-      return () -- TODO
-    handleCompileFailure ExitSuccess _ = return ()
-    handleCompileFailure (ExitFailure st) name = sendResponse =<< do
-      out <- liftIO $ readFileUtf8 (path "t.out")
-      err <- liftIO $ readFileUtf8 (path "t.err") -- TODO: catch
-      defaultLayout $ do
-          setTitle "Compile failure"
-          [whamlet|TODO|]
+    rc name optlist content = RunCompiler
+         { compilerName = compiler
+         , sourceFileName = name
+         , sourceFileContent = content
+         , compileOptions = optlist
+         , compileDirectory = tmpdir
+         }
