@@ -109,6 +109,7 @@ executable         AnarchyProofServer
                  , filepath
                  , process
                  , conduit
+                 , transformers
 
                  , yesod-test
 test-suite integration-tests

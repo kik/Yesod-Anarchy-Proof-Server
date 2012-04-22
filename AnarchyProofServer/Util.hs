@@ -64,8 +64,8 @@ runCompiler rc = do
   $(logDebug) $ T.pack $ show rc
   liftIO $ writeFileUtf8 (path src) srcContent
   ex <- liftIO $ system command
-  out <- outResult $$ textWidgetSink
-  err <- errResult $$ textWidgetSink
+  out <- sourceFileUtf8 outfile $$ textWidgetSink
+  err <- sourceFileUtf8 errfile $$ textWidgetSink
   return (ex == ExitSuccess, $(widgetFile "compile-result"))
   where
     command = unwords $ ["cd", tmpdir, ";", compiler, src] ++ optlist ++ redir
@@ -78,8 +78,6 @@ runCompiler rc = do
     outfile = path "t.out"
     errfile = path "t.err"
     redir = [">", outfile, "2>", errfile]
-    outResult = sourceFileUtf8 outfile
-    errResult = sourceFileUtf8 errfile
 
 textFileAFormReq ::
   RenderMessage master FormMessage => 

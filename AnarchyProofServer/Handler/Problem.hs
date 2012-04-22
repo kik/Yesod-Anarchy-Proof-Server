@@ -12,6 +12,7 @@ import Data.Conduit
 import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.List as CL
 import qualified Data.Conduit.Text as CT
+import Control.Monad.Trans.Writer
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
@@ -69,16 +70,16 @@ postProblemSolveR problemId = do
     $(widgetFile "post-answer")
 
 checkAns :: Problem -> Ans -> FilePath -> Handler (Bool, Widget)
-checkAns problem answer tmpdir = do
-  go rcs mempty
+checkAns problem answer tmpdir =
+  runWriterT $ go rcs
   where
-    go [] y = return (True, y)
-    go (x:xs) y = do
-      (ok, y') <- runCompiler x
-      if ok then
-        go xs (y <> y')
-        else
-        return (False, y <> y')
+    go [] = return True
+    go (x:xs) = do
+      (ok, widget) <- lift $ runCompiler x
+      tell widget
+      if ok
+        then go xs
+        else return False
         
     rcs = toList rcDefinitions ++ [rcInput, rcVerify]
     
