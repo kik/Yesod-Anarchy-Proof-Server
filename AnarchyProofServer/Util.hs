@@ -29,12 +29,9 @@ sourceFileUtf8 :: MonadResource m => FilePath -> Source m Text
 sourceFileUtf8 path =
   CB.sourceFile path $= CT.decode CT.utf8
 
-writeFileUtf8 :: FilePath -> Text -> IO ()
-writeFileUtf8 path text = do
-  withFile path WriteMode $ \h -> do
-    hSetEncoding h utf8
-    TIO.hPutStr h text
-    
+sinkFileUtf8 :: MonadResource m => FilePath -> Sink Text m ()  
+sinkFileUtf8 path =
+  CT.encode CT.utf8 =$ CB.sinkFile path
     
 lineWidget :: Text -> GWidget sub master ()
 lineWidget t = 
@@ -50,34 +47,45 @@ textWidgetSink :: MonadResource m => Sink Text m (GWidget sub master ())
 textWidgetSink =
   CT.lines =$ CL.fold (flip $ mappend . lineWidget) mempty
     
-data RunCompiler = RunCompiler
-                   { compilerName :: String
-                   , sourceFileName :: FilePath
-                   , sourceFileContent :: Text
-                   , compileOptions :: [String]
-                   , compileDirectory :: FilePath
+data CommandSpec = CoqcCommand
+                   { coqcName :: String
                    }
-                   deriving Show
-                   
-runCompiler :: RunCompiler -> Handler (Bool, Widget)
-runCompiler rc = do
+                 | CoqcheckCommand
+                   { coqcheckName :: String
+                     coqcheckAxioms :: Text
+                   }
+                 deriving Show
+
+data Command = Command
+               { workingDirectory :: FilePath
+               , sourceFileName :: FilePath
+               , sourceFileContent :: Maybe Text
+               , commandSpec :: CommandSpec
+               , commandOptions :: [String]
+               }
+               deriving Show
+
+execCommand :: Command -> Handler (Bool, Widget)
+execCommand rc@(Command { workingDirectory = wdir
+                        , sourceFileName = src
+                        , sourceFileContent = srcContent
+                        , commandSpec = commandSpec
+                        , commandOptions = optlist}) = do
   $(logDebug) $ T.pack $ show rc
-  liftIO $ writeFileUtf8 (path src) srcContent
-  ex <- liftIO $ system command
+  forM_ srcContent 
+    $ \s -> yield s $$ sinkFileUtf8 (path src)
+  ex <- liftIO $ system commandLine
   out <- sourceFileUtf8 outfile $$ textWidgetSink
   err <- sourceFileUtf8 errfile $$ textWidgetSink
   return (ex == ExitSuccess, $(widgetFile "compile-result"))
   where
-    command = unwords $ ["cd", tmpdir, ";", compiler, src] ++ optlist ++ redir
-    tmpdir = compileDirectory rc
-    path name = tmpdir </> name
-    compiler = compilerName rc
-    src = sourceFileName rc
-    srcContent = sourceFileContent rc
-    optlist = compileOptions rc
+    commandLine = unwords $ ["cd", wdir, ";", commandString commandSpec, src] ++ optlist ++ redir
+    path name = wdir </> name
     outfile = path "t.out"
     errfile = path "t.err"
     redir = [">", outfile, "2>", errfile]
+    commandString (CoqcCommand s) = s
+    commandString (CoqcheckCommand s) = s
 
 textFileAFormReq ::
   RenderMessage master FormMessage => 

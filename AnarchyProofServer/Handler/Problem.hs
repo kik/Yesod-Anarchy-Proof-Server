@@ -75,7 +75,7 @@ checkAns problem answer tmpdir =
   where
     go [] = return True
     go (x:xs) = do
-      (ok, widget) <- lift $ runCompiler x
+      (ok, widget) <- lift $ execCommand x
       tell widget
       if ok
         then go xs
@@ -83,19 +83,19 @@ checkAns problem answer tmpdir =
         
     rcs = toList rcDefinitions ++ [rcInput, rcVerify]
     
-    rcDefinitions = rc "Definition" [] <$> problemDefinitions problem
-    rcInput =       rc "Input.v" [] $ ansFile answer
-    rcVerify =      rc "Verify.v" verifyOpt $ problemVerifier problem
+    rcDefinitions = coqc "Definition" [] <$> problemDefinitions problem
+    rcInput =       coqc "Input.v" [] $ ansFile answer
+    rcVerify =      coqc "Verify.v" verifyOpt $ problemVerifier problem
     requireInput = "-require Input"
     requireDefinitions = 
       maybe [] (const ["-require Definitions"]) rcDefinitions
     verifyOpt = requireInput : requireDefinitions
 
     compiler = "coqc" -- TODO: ansLang answer
-    rc name optlist content = RunCompiler
-         { compilerName = compiler
+    coqc name optlist content = Command
+         { workingDirectory = tmpdir
          , sourceFileName = name
-         , sourceFileContent = content
-         , compileOptions = optlist
-         , compileDirectory = tmpdir
+         , sourceFileContent = Just content
+         , commandSpec = CoqcCommand compiler
+         , commandOptions = optlist
          }
