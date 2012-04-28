@@ -1,6 +1,7 @@
 module Util where
 
-import Import
+import Import hiding (elem, all)
+import Data.List ((\\))
 import Control.Monad.Trans.Control (control)
 import System.IO.Temp (withSystemTempDirectory)
 import Data.Text.Lazy.Encoding (decodeUtf8')
@@ -52,7 +53,7 @@ data CommandSpec = CoqcCommand
                    }
                  | CoqcheckCommand
                    { coqcheckName :: String
-                     coqcheckAxioms :: Text
+                   , coqcheckAxioms :: Text
                    }
                  deriving Show
 
@@ -77,7 +78,11 @@ execCommand rc@(Command { workingDirectory = wdir
   ex <- liftIO $ system commandLine
   out <- sourceFileUtf8 outfile $$ textWidgetSink
   err <- sourceFileUtf8 errfile $$ textWidgetSink
-  return (ex == ExitSuccess, $(widgetFile "compile-result"))
+  let ok = ex == ExitSuccess
+  postCheckErr <- if ok
+                  then postCheck commandSpec
+                  else return True
+  return (ok && postCheckErr, $(widgetFile "compile-result"))
   where
     commandLine = unwords $ ["cd", wdir, ";", commandString commandSpec, src] ++ optlist ++ redir
     path name = wdir </> name
@@ -85,7 +90,17 @@ execCommand rc@(Command { workingDirectory = wdir
     errfile = path "t.err"
     redir = [">", outfile, "2>", errfile]
     commandString (CoqcCommand s) = s
-    commandString (CoqcheckCommand s) = s
+    commandString (CoqcheckCommand s _) = s
+    postCheck (CoqcCommand _) = return True
+    postCheck (CoqcheckCommand _ axs) = do
+      let allowed = axioms (T.lines axs)
+      used <- axioms 
+              <$> (sourceFileUtf8 outfile $= CT.lines $$ CL.consume)
+      return $ compare allowed used
+    axioms lines = map T.strip 
+                   $ drop 1 
+                   $ dropWhile (not . T.isPrefixOf "* Axioms:") lines
+    compare allowed used = used \\ allowed == []
 
 textFileAFormReq ::
   RenderMessage master FormMessage => 
