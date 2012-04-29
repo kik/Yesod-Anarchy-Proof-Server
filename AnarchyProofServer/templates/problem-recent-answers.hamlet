@@ -1,0 +1,10 @@
+<h2>recent entries
+<table>
+  $forall (answer, problem, language) <- answers
+    <tr>
+      <td><a href=@{ProblemViewR $ answerProblemId answer}>
+        #{problemTitle problem}
+      <td>#{answerUser answer}
+      <td>#{languageName language}
+      <td>#{answerSize answer}
+      <td>#{show $ answerCreatedAt answer}

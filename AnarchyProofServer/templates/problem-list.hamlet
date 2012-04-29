@@ -1,0 +1,6 @@
+<h2>All problems
+<ol>
+  $forall Entity problemId problem <- problems
+    <li>
+      <a href=@{ProblemViewR problemId}>
+        #{problemTitle problem}

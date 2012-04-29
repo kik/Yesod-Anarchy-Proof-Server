@@ -16,17 +16,37 @@ import Control.Monad.Trans.Writer
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
+  problems <- runDB $ selectList [] [Asc ProblemId]
+  defaultLayout $ do
+    h2id <- lift newIdent
+    setTitle "AnarchyProofServer homepage"
+    $(widgetFile "problem-list")
+
+getProblemNewR :: Handler RepHtml
+getProblemNewR = do
     defaultLayout $ do
-        h2id <- lift newIdent
         setTitle "AnarchyProofServer homepage"
         [whamlet|TODO|]
+
+getProblemRecentAnswersR :: Handler RepHtml
+getProblemRecentAnswersR = do
+  as <- runDB $ selectList [] [Desc AnswerCreatedAt, LimitTo 100]
+  answers <- mapM getChild as
+  defaultLayout $ do
+        setTitle "AnarchyProofServer homepage"
+        $(widgetFile "problem-recent-answers")
+  where
+    getChild (Entity _ answer) = do
+      problem <- runDB $ getJust $ answerProblemId answer
+      language <- runDB $ getJust $ answerLanguageId answer
+      return (answer, problem, language)
 
 data Ans = Ans
            { ansUser :: Text
            , ansLang :: Entity Language
            , ansFile :: Text
-           }
-           
+           }           
+
 ansForm :: Form Ans
 ansForm =
   renderDivs $ Ans

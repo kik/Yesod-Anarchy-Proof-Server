@@ -5,7 +5,10 @@
 /robots.txt RobotsR GET
 
 /problem ProblemListR GET
+/problem/new ProblemNewR GET
 /problem/view/#ProblemId ProblemViewR GET
 /problem/prove/#ProblemId ProblemSolveR POST
+/problem/recent ProblemRecentAnswersR GET
 
-/ HomeR GET POST
+
+/ HomeR GET
