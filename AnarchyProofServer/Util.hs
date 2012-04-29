@@ -46,32 +46,35 @@ textWidget t =
 
 textWidgetSink :: MonadResource m => Sink Text m (GWidget sub master ())
 textWidgetSink =
-  CT.lines =$ CL.fold (flip $ mappend . lineWidget) mempty
+  CT.lines =$ CL.fold app mempty
+  where
+    app x y = x `mappend` (lineWidget y)
     
 data CommandSpec = CoqcCommand
                    { coqcName :: String
                    }
                  | CoqcheckCommand
                    { coqcheckName :: String
-                   , coqcheckAxioms :: Text
+                   , coqcheckAxioms :: Maybe Text
                    }
                  deriving Show
 
-data Command = Command
+data Command = ShellCommand
                { workingDirectory :: FilePath
                , sourceFileName :: FilePath
                , sourceFileContent :: Maybe Text
                , commandSpec :: CommandSpec
                , commandOptions :: [String]
                }
-               deriving Show
+             | CheckWordCommand Text
+             deriving Show
 
 execCommand :: Command -> Handler (Bool, Widget)
-execCommand rc@(Command { workingDirectory = wdir
-                        , sourceFileName = src
-                        , sourceFileContent = srcContent
-                        , commandSpec = commandSpec
-                        , commandOptions = optlist}) = do
+execCommand rc@(ShellCommand { workingDirectory = wdir
+                             , sourceFileName = src
+                             , sourceFileContent = srcContent
+                             , commandSpec = commandSpec
+                             , commandOptions = optlist}) = do
   $(logDebug) $ T.pack $ show rc
   forM_ srcContent 
     $ \s -> yield s $$ sinkFileUtf8 (path src)
@@ -84,7 +87,7 @@ execCommand rc@(Command { workingDirectory = wdir
                   else return True
   return (ok && postCheckErr, $(widgetFile "compile-result"))
   where
-    commandLine = unwords $ ["cd", wdir, ";", commandString commandSpec, src] ++ optlist ++ redir
+    commandLine = unwords $ ["cd", wdir, ";", commandString commandSpec] ++ optlist ++ src : redir
     path name = wdir </> name
     outfile = path "t.out"
     errfile = path "t.err"
@@ -93,14 +96,26 @@ execCommand rc@(Command { workingDirectory = wdir
     commandString (CoqcheckCommand s _) = s
     postCheck (CoqcCommand _) = return True
     postCheck (CoqcheckCommand _ axs) = do
-      let allowed = axioms (T.lines axs)
+      let allowed = maybe [] (axioms . T.lines) axs
       used <- axioms 
               <$> (sourceFileUtf8 outfile $= CT.lines $$ CL.consume)
       return $ compare allowed used
     axioms lines = map T.strip 
                    $ drop 1 
                    $ dropWhile (not . T.isPrefixOf "* Axioms:") lines
-    compare allowed used = used \\ allowed == []
+    compare allowed used = (used \\ [""]) \\ allowed == []
+
+execCommand (CheckWordCommand src) =
+  case wordCheck src of
+    Right _ -> return (True, mempty)
+    Left word -> return (False, $(widgetFile "word-check"))
+
+wordCheck :: Text -> Either Text ()
+wordCheck t =
+  maybe (Right ()) Left $ find (`T.isInfixOf` t) forbidden
+  where
+    forbidden =
+      T.words "Pwd Cd Drop ProtectedLoop Load Declare LoadPath Path ML State Debug Extract"
 
 textFileAFormReq ::
   RenderMessage master FormMessage => 

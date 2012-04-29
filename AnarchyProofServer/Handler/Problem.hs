@@ -101,21 +101,31 @@ checkAns problem answer tmpdir =
         then go xs
         else return False
         
-    rcs = toList rcDefinitions ++ [rcInput, rcVerify]
-    
+    rcs = rcWordCheck : toList rcDefinitions ++ [rcInput, rcVerify, rcCheck]
+
+    rcWordCheck   = CheckWordCommand $ ansFile answer
     rcDefinitions = coqc "Definition" [] <$> problemDefinitions problem
-    rcInput =       coqc "Input.v" [] $ ansFile answer
-    rcVerify =      coqc "Verify.v" verifyOpt $ problemVerifier problem
+    rcInput       = coqc "Input.v" [] $ ansFile answer
+    rcVerify      = coqc "Verify.v" verifyOpt $ problemVerifier problem
     requireInput = "-require Input"
     requireDefinitions = 
       maybe [] (const ["-require Definitions"]) rcDefinitions
     verifyOpt = requireInput : requireDefinitions
+    rcCheck = coqcheck "Input" ["-o", "-norec"] $ problemAssumption problem
 
     compiler = "coqc" -- TODO: ansLang answer
-    coqc name optlist content = Command
+    coqc name optlist content = ShellCommand
          { workingDirectory = tmpdir
          , sourceFileName = name
          , sourceFileContent = Just content
          , commandSpec = CoqcCommand compiler
          , commandOptions = optlist
          }
+    coqcheck name optlist axioms = ShellCommand
+         { workingDirectory = tmpdir
+         , sourceFileName = name
+         , sourceFileContent = Nothing
+         , commandSpec = CoqcheckCommand "coqchk" axioms
+         , commandOptions = optlist
+         }
+    
