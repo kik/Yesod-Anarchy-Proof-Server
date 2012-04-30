@@ -25,9 +25,11 @@ $maybe w <- assm
 $forall langAns <- grouping langs answers
   <p>#{languageName $ fst langAns}
   <table>
-    $forall ans <- snd langAns
+    $forall Entity answerId ans <- snd langAns
       <tr>
-        <td>#{answerUser ans}
+        <td>
+          <a href=@{ProblemViewAnswerR answerId}>
+            #{answerUser ans}
         <td>#{answerSize ans}
         <td>#{show $ answerCreatedAt ans}
 

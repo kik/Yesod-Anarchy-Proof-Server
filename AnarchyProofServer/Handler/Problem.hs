@@ -42,6 +42,16 @@ getProblemRecentAnswersR = do
       language <- runDB $ getJust $ answerLanguageId answer
       return (answer, problem, language)
 
+getProblemViewAnswerR :: AnswerId -> Handler RepHtml
+getProblemViewAnswerR answerId = do
+  answer <- runDB $ get404 answerId
+  let problemId = answerProblemId answer
+  let widget = textWidget $ answerFile answer
+  problem <- runDB $ getJust problemId
+  defaultLayout $ do
+    setTitle "AnarchyProofServer homepage"
+    $(widgetFile "problem-view-answer")  
+
 data Ans = Ans
            { ansUser :: Text
            , ansLang :: Entity Language
@@ -76,7 +86,7 @@ getProblemViewR problemId = do
     grouping ls as =
       [(l, groupByLang lk as) | Entity lk l <- ls]
     groupByLang lk as =
-      [a | Entity _ a <- as, answerLanguageId a == lk]
+      [a | a <- as, answerLanguageId (entityVal a) == lk]
 
 postProblemSolveR :: ProblemId -> Handler RepHtml
 postProblemSolveR problemId = do

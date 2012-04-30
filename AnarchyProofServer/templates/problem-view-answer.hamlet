@@ -1,0 +1,5 @@
+<h2>
+  <a href=@{ProblemViewR problemId}>
+    #{problemTitle problem}
+
+<pre>^{widget}

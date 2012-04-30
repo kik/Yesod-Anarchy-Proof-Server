@@ -7,6 +7,7 @@
 /problem ProblemListR GET
 /problem/new ProblemNewR GET
 /problem/view/#ProblemId ProblemViewR GET
+/problem/viewa/#AnswerId ProblemViewAnswerR GET
 /problem/prove/#ProblemId ProblemSolveR POST
 /problem/recent ProblemRecentAnswersR GET
 
