@@ -2,6 +2,7 @@ module Handler.Problem where
 
 import Import
 import Util
+import Control.Monad
 import qualified Data.Text as T
 import Data.Foldable
 import System.FilePath ((</>))
@@ -84,10 +85,29 @@ postProblemSolveR problemId = do
   answer <- case result of
         FormSuccess r -> return r
         _ -> redirect $ ProblemViewR problemId
-  (ok, compileLog) <- withTempDir "aps-" $ checkAns problem answer  
+  (ok, compileLog) <- withTempDir "aps-" $ checkAns problem answer
+  when ok $ saveAnswer answer
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
     $(widgetFile "post-answer")
+  where
+    saveAnswer ans = do
+      let languageId = entityKey $ ansLang ans
+      prev <- runDB $ getBy $ AnswerProblemLanguageUser problemId languageId (ansUser ans)
+      current <- liftIO $ getCurrentTime
+      insertOrUpdate prev 
+        $ Answer
+        { answerProblemId = problemId
+        , answerLanguageId = languageId
+        , answerUser = ansUser ans
+        , answerFile = ansFile ans
+        , answerSize = T.length $ ansFile ans
+        , answerCreatedAt = current
+        }
+    insertOrUpdate Nothing new =
+      void $ runDB $ insert new
+    insertOrUpdate (Just (Entity id _)) new =
+      runDB $ replace id new
 
 checkAns :: Problem -> Ans -> FilePath -> Handler (Bool, Widget)
 checkAns problem answer tmpdir =
