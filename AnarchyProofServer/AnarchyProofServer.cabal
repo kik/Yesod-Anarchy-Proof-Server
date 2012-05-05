@@ -33,6 +33,7 @@ library
                      Settings
                      Settings.StaticFiles
                      Util
+                     Checker
                      Handler.Home
                      Handler.Problem
 
@@ -110,6 +111,7 @@ executable         AnarchyProofServer
                  , process
                  , conduit
                  , transformers
+                 , lifted-base
 
                  , yesod-test
 test-suite integration-tests
