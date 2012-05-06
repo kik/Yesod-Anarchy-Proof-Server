@@ -1,25 +1,16 @@
 module Util where
 
 import Import hiding (elem, all)
-import Data.List ((\\))
 import Control.Monad.Trans.Control (control)
 import System.IO.Temp (withSystemTempDirectory)
 import Data.Text.Lazy.Encoding (decodeUtf8')
 import Data.Text.Lazy (toStrict)
 import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
-import System.IO
 import Data.Conduit
 import qualified Data.Conduit.Binary as CB
 import qualified Data.Conduit.List as CL
 import qualified Data.Conduit.Text as CT
-import System.FilePath ((</>))
-import System.Exit
-import System.Process (system)
 import Data.Foldable
-import Control.Monad.Trans.Writer
-import Control.Monad.Trans.Error
-import Control.Monad
 
 withTempDir :: FilePath 
                -> (FilePath -> GHandler sub master a) 

@@ -112,6 +112,7 @@ executable         AnarchyProofServer
                  , conduit
                  , transformers
                  , lifted-base
+                 , mtl
 
                  , yesod-test
 test-suite integration-tests

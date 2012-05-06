@@ -1,20 +1,12 @@
 module Handler.Problem where
 
-import Import
+import Import hiding (sequence_)
 import Util
 import Checker
-import Control.Monad
+import Control.Monad (when, void)
 import qualified Data.Text as T
 import Data.Foldable
-import System.FilePath ((</>))
 import Data.Time.Clock (getCurrentTime)
-import System.Process (system)
-import System.Exit
-import Data.Conduit
-import qualified Data.Conduit.Binary as CB
-import qualified Data.Conduit.List as CL
-import qualified Data.Conduit.Text as CT
-import Control.Monad.Trans.Writer
 
 getProblemListR :: Handler RepHtml
 getProblemListR = do
@@ -56,7 +48,7 @@ postProblemConfirmNewR = do
   prob <- case result of
     FormSuccess r -> return r
     _ -> redirect $ ProblemNewR
-  (ok, compileLog) <- withTempDir "aps-" $ checkProb prob
+  --(ok, compileLog) <- withTempDir "aps-" $ checkProb prob
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
     [whamlet|TODO|]
@@ -127,7 +119,8 @@ postProblemSolveR problemId = do
   answer <- case result of
         FormSuccess r -> return r
         _ -> redirect $ ProblemViewR problemId
-  (ok, compileLog) <- withTempDir "aps-" $ checkAns problem answer
+  (error, compileLog) <- runCheck "aps-" $ checkAns problem answer
+  let ok = error == Right ()
   when ok $ saveAnswer answer
   defaultLayout $ do
     setTitle "AnarchyProofServer homepage"
@@ -151,51 +144,42 @@ postProblemSolveR problemId = do
     insertOrUpdate (Just (Entity id _)) new =
       runDB $ replace id new
 
-checkAns :: Problem -> Ans -> FilePath -> Check Handler ()
-checkAns problem answer tmpdir =
-  runWriterT $ go rcs
+checkAns :: Problem -> Ans -> Check Handler ()
+checkAns problem answer = do
+  execWordCheck $ ansFile answer
+  sequence_ coqcDefinitions
+  coqcInput
+  coqcVerify
+  used <- coqchkInput
+  execAxiomCheck used axioms
   where
-    go [] = return True
-    go (x:xs) = do
-      (ok, widget) <- lift $ execCommand x
-      tell widget
-      if ok
-        then go xs
-        else return False
-
-checkAns :: Problem -> Ans -> FilePath -> Handler (Bool, Widget)
-checkAns problem answer tmpdir =
-  runCommands rcs
-  where
-    rcs = rcWordCheck : toList rcDefinitions ++ [rcInput, rcVerify, rcCheck]
-
-    rcWordCheck   = CheckWordCommand $ ansFile answer
-    rcDefinitions = coqc "Definition" [] <$> problemDefinitions problem
-    rcInput       = coqc "Input.v" [] $ ansFile answer
-    rcVerify      = coqc "Verify.v" verifyOpt $ problemVerifier problem
+    coqcDefinitions = coqc "Definition" [] <$> problemDefinitions problem
+    coqcInput       = coqc "Input.v" [] $ ansFile answer
+    coqcVerify      = coqc "Verify.v" verifyOpt $ problemVerifier problem
+    
     requireInput = "-require Input"
     requireDefinitions = 
-      maybe [] (const ["-require Definitions"]) rcDefinitions
+      maybe [] (const ["-require Definitions"]) coqcDefinitions
     verifyOpt = requireInput : requireDefinitions
-    rcCheck = coqcheck "Input" ["-o", "-norec"] $ problemAssumption problem
-
-    compiler = "coqc" -- TODO: ansLang answer
-    coqc name optlist content = ShellCommand
-         { workingDirectory = tmpdir
-         , sourceFileName = name
-         , sourceFileContent = Just content
-         , commandSpec = CoqcCommand compiler
-         , commandOptions = optlist
-         }
-    coqcheck name optlist axioms = ShellCommand
-         { workingDirectory = tmpdir
-         , sourceFileName = name
-         , sourceFileContent = Nothing
-         , commandSpec = CoqcheckCommand "coqchk" axioms
-         , commandOptions = optlist
-         }
     
-checkProb :: Prob -> FilePath -> Handler (Bool, Wiget)
+    coqchkInput = coqchk "Input" ["-o", "-norec"]
+    axioms = maybe [] T.lines $ problemAssumption problem
+    compiler = "coqc" -- TODO: ansLang answer
+    coqc name optlist content = 
+      execCoqc $ ShellSpec { sourceFileName = name
+                           , sourceFileContent = Just content
+                           , commandName = compiler
+                           , commandOptions = optlist
+                           }
+    coqchk name optlist = 
+      execCoqchk $ ShellSpec { sourceFileName = name
+                             , sourceFileContent = Nothing
+                             , commandName = "coqchk"
+                             , commandOptions = optlist
+                             }
+
+{-
+checkProb :: Prob -> FilePath -> Handler (Bool, Widget)
 checkProb prob tmpdir =
   runCommands rcs
   where
@@ -226,3 +210,4 @@ checkProb prob tmpdir =
          , commandSpec = CoqcheckCommand "coqchk" axioms
          , commandOptions = optlist
          }
+-}
