@@ -1,0 +1,5 @@
+<h2>create new problem
+<p>
+  <form method=post action=@{ProblemConfirmNewR} enctype=#{probEnctype}>
+    ^{probWidget}
+    <input type=submit value="Check!">
