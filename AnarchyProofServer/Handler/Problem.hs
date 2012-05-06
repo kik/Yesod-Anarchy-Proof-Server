@@ -2,6 +2,7 @@ module Handler.Problem where
 
 import Import
 import Util
+import Checker
 import Control.Monad
 import qualified Data.Text as T
 import Data.Foldable
@@ -150,8 +151,8 @@ postProblemSolveR problemId = do
     insertOrUpdate (Just (Entity id _)) new =
       runDB $ replace id new
 
-runCommands :: [Command] -> Handler (Bool, Widget)
-runCommands rcs =
+checkAns :: Problem -> Ans -> FilePath -> Check Handler ()
+checkAns problem answer tmpdir =
   runWriterT $ go rcs
   where
     go [] = return True
