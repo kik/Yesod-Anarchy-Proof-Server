@@ -23,11 +23,42 @@ getProblemListR = do
     setTitle "AnarchyProofServer homepage"
     $(widgetFile "problem-list")
 
+data Prob = Prob
+            { probTitle :: Text
+            , probDescription :: Textarea
+            , probDefinitions :: Textarea
+            , probTheorem :: Textarea
+            , probVerifier :: Textarea
+            , probAssumption :: Textarea
+            }
+
+probForm :: Form Prob
+probForm =
+  renderDivs $ Prob
+  <$> areq textField "Title" Nothing
+  <*> areq textareaField "Description" Nothing
+  <*> areq textareaField "Definitions" Nothing
+  <*> areq textareaField "Theorem" Nothing
+  <*> areq textareaField "Vefifier" Nothing
+  <*> areq textareaField "Assumption" Nothing
+
 getProblemNewR :: Handler RepHtml
 getProblemNewR = do
-    defaultLayout $ do
-        setTitle "AnarchyProofServer homepage"
-        [whamlet|TODO|]
+  (probWidget, probEnctype) <- generateFormPost $ probForm
+  defaultLayout $ do
+    setTitle "AnarchyProofServer homepage"
+    $(widgetFile "problem-new")
+
+postProblemConfirmNewR :: Handler RepHtml
+postProblemConfirmNewR = do
+  ((result, probWidget), probEnctype) <- runFormPost probForm
+  prob <- case result of
+    FormSuccess r -> return r
+    _ -> redirect $ ProblemNewR
+  (ok, compileLog) <- withTempDir "aps-" $ checkProb prob
+  defaultLayout $ do
+    setTitle "AnarchyProofServer homepage"
+    [whamlet|TODO|]
 
 getProblemRecentAnswersR :: Handler RepHtml
 getProblemRecentAnswersR = do
@@ -119,8 +150,8 @@ postProblemSolveR problemId = do
     insertOrUpdate (Just (Entity id _)) new =
       runDB $ replace id new
 
-checkAns :: Problem -> Ans -> FilePath -> Handler (Bool, Widget)
-checkAns problem answer tmpdir =
+runCommands :: [Command] -> Handler (Bool, Widget)
+runCommands rcs =
   runWriterT $ go rcs
   where
     go [] = return True
@@ -130,7 +161,11 @@ checkAns problem answer tmpdir =
       if ok
         then go xs
         else return False
-        
+
+checkAns :: Problem -> Ans -> FilePath -> Handler (Bool, Widget)
+checkAns problem answer tmpdir =
+  runCommands rcs
+  where
     rcs = rcWordCheck : toList rcDefinitions ++ [rcInput, rcVerify, rcCheck]
 
     rcWordCheck   = CheckWordCommand $ ansFile answer
@@ -159,3 +194,34 @@ checkAns problem answer tmpdir =
          , commandOptions = optlist
          }
     
+checkProb :: Prob -> FilePath -> Handler (Bool, Wiget)
+checkProb prob tmpdir =
+  runCommands rcs
+  where
+    rcs = rcWordCheck : toList rcDefinitions ++ [rcInput, rcVerify, rcCheck]
+
+    rcWordCheck1  = CheckWordCommand $ ansFile answer
+    rcDefinitions = coqc "Definition" [] <$> problemDefinitions problem
+    rcInput       = coqc "Input.v" [] $ ansFile answer
+    rcVerify      = coqc "Verify.v" verifyOpt $ problemVerifier problem
+    requireInput = "-require Input"
+    requireDefinitions = 
+      maybe [] (const ["-require Definitions"]) rcDefinitions
+    verifyOpt = requireInput : requireDefinitions
+    rcCheck = coqcheck "Input" ["-o", "-norec"] $ problemAssumption problem
+
+    compiler = "coqc" -- TODO: ansLang answer
+    coqc name optlist content = ShellCommand
+         { workingDirectory = tmpdir
+         , sourceFileName = name
+         , sourceFileContent = Just content
+         , commandSpec = CoqcCommand compiler
+         , commandOptions = optlist
+         }
+    coqcheck name optlist axioms = ShellCommand
+         { workingDirectory = tmpdir
+         , sourceFileName = name
+         , sourceFileContent = Nothing
+         , commandSpec = CoqcheckCommand "coqchk" axioms
+         , commandOptions = optlist
+         }

@@ -6,6 +6,7 @@
 
 /problem ProblemListR GET
 /problem/new ProblemNewR GET
+/problem/confirm ProblemConfirmNewR POST
 /problem/view/#ProblemId ProblemViewR GET
 /problem/viewa/#AnswerId ProblemViewAnswerR GET
 /problem/prove/#ProblemId ProblemSolveR POST
